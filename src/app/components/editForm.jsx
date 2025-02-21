@@ -9,7 +9,6 @@ import ContactUs from "@/app/components/contactUs";
 import Catalogue from "@/app/components/catalogue";
 import Members from "@/app/components/members";
 import TheFooter from "@/app/components/footer";
-import process from "next/dist/build/webpack/loaders/resolve-url-loader/lib/postcss";
 
 const EditForm = () => {
     const id = Number(process.env.NEXT_PUBLIC_WEB_ID)
