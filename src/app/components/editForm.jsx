@@ -62,9 +62,6 @@ const EditForm = () => {
     }, [id]);
 
     const uploadFileToS3 = async (file, e) => {
-        console.log("Subiendo archivo a S3...");
-
-
         const blob = new Blob([file], { type: file.type });
         const formData = new FormData();
         formData.append("file", blob, file.name); // Asegúrate de incluir el nombre del archivo
@@ -77,11 +74,8 @@ const EditForm = () => {
                 "Access-Control-Allow-Origin": "*",
             }
         });
-        console.log("Respuesta de S3:", res);
         const data = await res.json();
-        console.log("Data de S3:", data);
         if (data.success) {
-            console.log(`Archivo subido a S3:`);
             return data.url;
         }
 
@@ -127,8 +121,6 @@ const EditForm = () => {
                 try {
                     const url = await uploadFileToS3(file, e);
                     updateNestedProperty(updatedFormData, campo, url);
-                    console.log("📤 Subiendo archivo:");
-                    console.log(updatedFormData.home.imagen);
                    await deleteS3Item(valor, e); // Eliminar el archivo viejo de S3
 
                 } catch (error) {
@@ -206,8 +198,6 @@ const EditForm = () => {
             }
             await processFilesAndUpdateFormData(e)
 
-
-            console.log("📤 Enviando datos:", formData);
             e.preventDefault();
             const res = await fetch("/api/updateWeb", {
                 method: "POST",

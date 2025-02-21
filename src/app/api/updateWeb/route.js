@@ -18,7 +18,6 @@ export async function POST(req) {
                 link3: body.link3,
             },
         });
-        console.log(body.home)
 
         if (body.header) {
             await prisma.header.update({
@@ -62,7 +61,6 @@ export async function POST(req) {
                 data: body.footer,
             });
         }
-        console.log("Datos actualizados")
         return new Response(JSON.stringify({ success: true }), { status: 200,
             headers: {
                 "Content-Type": "application/json",
