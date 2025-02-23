@@ -9,6 +9,8 @@ import ContactUs from "@/app/components/contactUs";
 import Catalogue from "@/app/components/catalogue";
 import Members from "@/app/components/members";
 import TheFooter from "@/app/components/footer";
+import LoadingIndicator from "@/app/components/infoView";
+import ErrorIndicator from "@/app/components/errorView";
 
 const EditForm = () => {
     const id = Number(process.env.NEXT_PUBLIC_WEB_ID)
@@ -16,8 +18,8 @@ const EditForm = () => {
     const [webData, setWebData] = useState(null);
     const [formData, setFormData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const listaRef = useRef([]);
-
 
     useEffect(() => {
         if (!id) {
@@ -61,11 +63,11 @@ const EditForm = () => {
         fetchData();
     }, [id]);
 
-    const uploadFileToS3 = async (file, e) => {
+    const uploadFileToS3 = async (file, name, e) => {
         const blob = new Blob([file], { type: file.type });
         const formData = new FormData();
         formData.append("file", blob, file.name); // Asegúrate de incluir el nombre del archivo
-
+        formData.append("folder", name );
         e.preventDefault();
         const res = await fetch("/api/uploadFileToS3", {
             method: "POST",
@@ -78,8 +80,6 @@ const EditForm = () => {
         if (data.success) {
             return data.url;
         }
-
-
         return console.error("Error al subir archivo a S3");
     };
     const deleteS3Item = async (fileUrl, e) => {
@@ -119,9 +119,9 @@ const EditForm = () => {
         for (const item of listaRef.current) {
             const { campo, valor, file } = item;
                 try {
-                    const url = await uploadFileToS3(file, e);
+                    const url = await uploadFileToS3(file, formData.owner.business, e);
                     updateNestedProperty(updatedFormData, campo, url);
-                   await deleteS3Item(valor, e); // Eliminar el archivo viejo de S3
+                    await deleteS3Item(valor, e); // Eliminar el archivo viejo de S3
 
                 } catch (error) {
                     console.error("Error al subir archivo:", error);
@@ -129,10 +129,8 @@ const EditForm = () => {
                     return false; // Devolver false si ocurre un error
                 }
         }
-
-        // Si todo va bien, actualizar formData con los nuevos datos
         setFormData(updatedFormData);
-        return true; // Retorna true si todo se procesó correctamente
+        return true;
     };
     const handleChange = (e) => {
         const { name, value, type, files } = e.target;
@@ -191,6 +189,7 @@ const EditForm = () => {
     };
     const handleSave = async (e) => {
         try {
+            setSaving(true);
             // Validar que formData no esté vacío
             if (!formData || Object.keys(formData).length === 0) {
                 alert("No hay datos para guardar.");
@@ -204,17 +203,18 @@ const EditForm = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
-
             const data = await res.json();
-
             if (data.success) {
                 alert("Datos guardados correctamente");
             } else {
                 alert("Error al guardar: " + ("Respuesta inesperada"));
             }
+            setSaving(false);
             window.location.href = '/';
 
         } catch (error) {
+            setSaving(false);
+            setWebData(false);
             console.error("❌ Error guardando datos:", error.stack || error);
             if (error.name === "AbortError") {
                 alert("La solicitud tardó demasiado. Por favor, intenta de nuevo.");
@@ -225,8 +225,9 @@ const EditForm = () => {
     };
 
 
-    if (loading) return <div>🔄 Cargando datos...</div>;
-    if (!webData) return <div>❌ No se encontraron datos.</div>;
+    if (saving) return <LoadingIndicator message=" Guardando datos..." />;
+    if (loading) return  <LoadingIndicator message=" Cargando datos..." />;
+    if (!webData) return <ErrorIndicator message="Error al cargar datos" />;
     return (
         <div className="flex gap-4 p-4 h-screen ">
             {/* Formulario de edición */}
@@ -410,21 +411,21 @@ const EditForm = () => {
 
                     {/* Miembros */}
                     <div className="mt-6">
-                        <h2 className="text-lg font-semibold mb-2">👥 Miembros</h2>
+                        <h2 className="text-lg font-semibold mb-2">👥 Modulo extra</h2>
                         <hr className="mb-4 border-gray-300"/>
                         <div className="grid gap-4">
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Título Miembros:</label>
+                                <label className="block font-medium">Título:</label>
                                 <input type="text" name="members.titulo" placeholder={webData.members.titulo}
                                        onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Texto Miembros:</label>
+                                <label className="block font-medium">Texto :</label>
                                 <textarea name="members.texto" placeholder={webData.members.texto}
                                           onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Imagen Miembros:</label>
+                                <label className="block font-medium">Imagen:</label>
                                 <input type="file" accept="image/png, image/jpeg" name="members.imagen"
                                        placeholder={webData.members.imagen} onChange={handleChange}
                                        className="border p-2 w-full rounded"/>
@@ -434,16 +435,16 @@ const EditForm = () => {
 
                     {/* Contacto */}
                     <div className="mt-6">
-                        <h2 className="text-lg font-semibold mb-2">📞 Contacto</h2>
+                        <h2 className="text-lg font-semibold mb-2">📞 Contáctanos</h2>
                         <hr className="mb-4 border-gray-300"/>
                         <div className="grid gap-4">
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Texto Contacto:</label>
+                                <label className="block font-medium">Texto:</label>
                                 <textarea name="contact_us.texto" placeholder={webData.contact_us.texto}
                                           onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Imagen Contacto:</label>
+                                <label className="block font-medium">Imagen:</label>
                                 <input type="file" accept="image/png, image/jpeg" name="contact_us.imagen"
                                        placeholder={webData.contact_us.imagen} onChange={handleChange}
                                        className="border p-2 w-full rounded"/>
@@ -459,26 +460,39 @@ const EditForm = () => {
                         <div className="grid gap-4">
                             <div className="p-4 border rounded-lg shadow-md">
                                 <label className="block font-medium">Logo Footer:</label>
-                                <input type="text" name="footer.logo" placeholder={webData.footer.logo}
+                                <input type="file" accept="image/png, image/jpeg"  name="footer.logo" placeholder={webData.footer.logo}
                                        onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
 
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Slogan Footer:</label>
+                                <label className="block font-medium">Slogan:</label>
                                 <input type="text" name="footer.slogan" placeholder={webData.footer.slogan}
                                        onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
 
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Correo Footer:</label>
+                                <label className="block font-medium">Correo:</label>
                                 <input type="text" name="footer.correo" placeholder={webData.footer.correo}
                                        onChange={handleChange} className="border p-2 w-full rounded"/>
                             </div>
 
                             <div className="p-4 border rounded-lg shadow-md">
-                                <label className="block font-medium">Número Footer:</label>
-                                <input type="text" name="footer.numero" placeholder={webData.footer.numero}
-                                       onChange={handleChange} className="border p-2 w-full rounded"/>
+                                <label className="block font-medium">Número:</label>
+                                <input
+                                    type="tel"
+                                    name="footer.numero"
+                                    placeholder={webData.footer.numero}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, "");
+                                        handleChange({target: {name: e.target.name, value}});
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key !== "Backspace" && e.key !== "Delete" && !/[0-9]/.test(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    className="border p-2 w-full rounded"
+                                />
                             </div>
 
                         </div>

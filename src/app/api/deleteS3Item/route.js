@@ -29,6 +29,7 @@ export async function POST(req) {
             };
 
             await s3.deleteObject(params).promise();
+            console.log(`✅ Archivo eliminado: ${key}`);
 
             return new Response(JSON.stringify({ success: true }), {
                 status: 200,
