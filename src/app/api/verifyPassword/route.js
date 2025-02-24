@@ -11,6 +11,8 @@ export async function POST(req) {
             id: id, // Aquí es el ID del usuario que estás buscando
         },
     });
+    console.log(password, user)
+    console.log("qrwerqerqwer")
     if (user && bcrypt.compareSync(password, user.password)) {
         return new Response(JSON.stringify({ success: true }), { status: 200,
             headers: {
